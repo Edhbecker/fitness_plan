@@ -1,0 +1,370 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  TRAINER
+  ADMIN
+}
+
+enum Sex {
+  HOMEM
+  MULHER
+  OUTRO
+  NAO_INFORMADO
+}
+
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ExerciseType {
+  FORCA
+  MOBILIDADE
+  CARDIO
+  ALONGAMENTO
+  FUNCIONAL
+  OUTRO
+}
+
+enum PeriodizationStatus {
+  PLANNING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum WorkoutStatus {
+  COMPLETED
+  PARTIAL
+  MISSED
+}
+
+model User {
+  id              String           @id @default(cuid())
+  name            String
+  email           String           @unique
+  passwordHash    String
+  role            UserRole         @default(TRAINER)
+  students        Student[]
+  exercises       Exercise[]
+  periodizations  Periodization[]
+  workoutSessions WorkoutSession[]
+  auditLogs       AuditLog[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model Student {
+  id              String                 @id @default(cuid())
+  trainerId       String
+  trainer         User                   @relation(fields: [trainerId], references: [id])
+  name            String
+  contact         String?
+  birthDate       DateTime
+  sex             Sex
+  heightCm        Decimal                @db.Decimal(6, 2)
+  initialWeightKg Decimal?               @db.Decimal(6, 2)
+  objective       String
+  weeklyFrequency Int
+  notes           String?
+  status          StudentStatus          @default(ACTIVE)
+  deactivatedAt   DateTime?
+  anonymizedAt    DateTime?
+  healthHistory   HealthHistoryVersion[]
+  lifestyle       Lifestyle?
+  assessments     BodyAssessment[]
+  periodizations  Periodization[]
+  workoutSessions WorkoutSession[]
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([trainerId, status])
+}
+
+model HealthHistoryVersion {
+  id                        String    @id @default(cuid())
+  studentId                 String
+  student                   Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  versionDate               DateTime
+  chronicDisease            Boolean   @default(false)
+  chronicDiseaseDescription String?
+  medicationUse             Boolean   @default(false)
+  medicationDescription     String?
+  surgeryHistory            Boolean   @default(false)
+  surgeryDescription        String?
+  fractureHistory           Boolean   @default(false)
+  fractureDescription       String?
+  regularDoctor             Boolean   @default(false)
+  regularDoctorDescription  String?
+  regularExams              Boolean   @default(false)
+  regularExamsDescription   String?
+  familyCardioHistory       Boolean   @default(false)
+  lastMedicalAppointment    DateTime?
+  notes                     String?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  @@index([studentId, versionDate])
+}
+
+model Lifestyle {
+  id                        String   @id @default(cuid())
+  studentId                 String   @unique
+  student                   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  activityLevel             String?
+  currentActivities         String?
+  trainingFrequencyDuration String?
+  practicesSport            Boolean  @default(false)
+  sportDescription          String?
+  smoking                   Boolean  @default(false)
+  sleepQuality              String?
+  sleepHours                Decimal? @db.Decimal(4, 2)
+  alcoholUse                Boolean  @default(false)
+  alcoholFrequency          String?
+  stressLevel               String?
+  timeManagementDifficulty  Boolean  @default(false)
+  trainingPreference        String?
+  preferredTrainingTime     String?
+  environmentPreference     String?
+  effortTolerance           String?
+  equipmentPreference       String?
+  enjoyableTraining         String?
+  preferredIntensity        String?
+  preferredExercises        String?
+  dislikedExercises         String?
+  notes                     String?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+}
+
+model BodyCompositionProtocol {
+  id                String           @id @default(cuid())
+  name              String           @unique
+  description       String?
+  requiredSkinfolds String[]
+  active            Boolean          @default(true)
+  assessments       BodyAssessment[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+}
+
+model BodyAssessment {
+  id                   String                  @id @default(cuid())
+  studentId            String
+  student              Student                 @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  protocolId           String
+  protocol             BodyCompositionProtocol @relation(fields: [protocolId], references: [id])
+  assessmentDate       DateTime
+  weightKg             Decimal                 @db.Decimal(6, 2)
+  ageAtAssessment      Int
+  sexAtAssessment      Sex
+  heightCmAtAssessment Decimal                 @db.Decimal(6, 2)
+  chestSkinfold        Decimal?                @db.Decimal(6, 2)
+  axillarySkinfold     Decimal?                @db.Decimal(6, 2)
+  tricepsSkinfold      Decimal?                @db.Decimal(6, 2)
+  subscapularSkinfold  Decimal?                @db.Decimal(6, 2)
+  abdominalSkinfold    Decimal?                @db.Decimal(6, 2)
+  suprailiacSkinfold   Decimal?                @db.Decimal(6, 2)
+  thighSkinfold        Decimal?                @db.Decimal(6, 2)
+  bicepsSkinfold       Decimal?                @db.Decimal(6, 2)
+  supraespinalSkinfold Decimal?                @db.Decimal(6, 2)
+  chestCircumference   Decimal?                @db.Decimal(6, 2)
+  waistCircumference   Decimal?                @db.Decimal(6, 2)
+  hipCircumference     Decimal?                @db.Decimal(6, 2)
+  abdomenCircumference Decimal?                @db.Decimal(6, 2)
+  thighCircumference   Decimal?                @db.Decimal(6, 2)
+  armCircumference     Decimal?                @db.Decimal(6, 2)
+  skinfoldSum          Decimal?                @db.Decimal(8, 2)
+  bodyDensity          Decimal?                @db.Decimal(8, 5)
+  bodyFatPercentage    Decimal?                @db.Decimal(6, 2)
+  fatMassKg            Decimal?                @db.Decimal(6, 2)
+  leanMassKg           Decimal?                @db.Decimal(6, 2)
+  basalMetabolicRate   Decimal?                @db.Decimal(8, 2)
+  notes                String?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  @@index([studentId, assessmentDate])
+}
+
+model Exercise {
+  id                    String              @id @default(cuid())
+  trainerId             String
+  trainer               User                @relation(fields: [trainerId], references: [id])
+  name                  String
+  primaryMuscleGroup    String
+  secondaryMuscleGroups String[]
+  equipment             String?
+  type                  ExerciseType
+  videoUrl              String?
+  notes                 String?
+  active                Boolean             @default(true)
+  aliases               ExerciseAlias[]
+  plannedExercises      PlannedExercise[]
+  performedExercises    PerformedExercise[]
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@unique([trainerId, name])
+  @@index([trainerId, active])
+}
+
+model ExerciseAlias {
+  id         String   @id @default(cuid())
+  exerciseId String
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  alias      String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([exerciseId, alias])
+}
+
+model Periodization {
+  id         String              @id @default(cuid())
+  trainerId  String
+  trainer    User                @relation(fields: [trainerId], references: [id])
+  studentId  String
+  student    Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  name       String
+  objective  String
+  startDate  DateTime
+  totalWeeks Int                 @default(12)
+  endDate    DateTime
+  status     PeriodizationStatus @default(PLANNING)
+  notes      String?
+  weeks      TrainingWeek[]
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  @@index([trainerId, studentId])
+}
+
+model TrainingWeek {
+  id              String        @id @default(cuid())
+  periodizationId String
+  periodization   Periodization @relation(fields: [periodizationId], references: [id], onDelete: Cascade)
+  weekNumber      Int
+  startDate       DateTime
+  endDate         DateTime
+  days            TrainingDay[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([periodizationId, weekNumber])
+}
+
+model TrainingDay {
+  id               String            @id @default(cuid())
+  trainingWeekId   String
+  trainingWeek     TrainingWeek      @relation(fields: [trainingWeekId], references: [id], onDelete: Cascade)
+  dayOfWeek        DayOfWeek
+  date             DateTime
+  isRestDay        Boolean           @default(false)
+  notes            String?
+  plannedExercises PlannedExercise[]
+  workoutSessions  WorkoutSession[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@unique([trainingWeekId, dayOfWeek])
+}
+
+model PlannedExercise {
+  id                  String              @id @default(cuid())
+  trainingDayId       String
+  trainingDay         TrainingDay         @relation(fields: [trainingDayId], references: [id], onDelete: Cascade)
+  exerciseId          String?
+  exercise            Exercise?           @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+  customExerciseName  String?
+  order               Int
+  sets                Int
+  reps                Int
+  loadKg              Decimal             @db.Decimal(7, 2)
+  registeredOneRmKg   Decimal?            @db.Decimal(7, 2)
+  estimatedOneRmKg    Decimal?            @db.Decimal(7, 2)
+  volume              Decimal             @db.Decimal(10, 2)
+  intensityPercentage Decimal?            @db.Decimal(6, 2)
+  restSeconds         Int
+  notes               String?
+  performedExercises  PerformedExercise[]
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([trainingDayId, order])
+}
+
+model WorkoutSession {
+  id                 String              @id @default(cuid())
+  trainingDayId      String
+  trainingDay        TrainingDay         @relation(fields: [trainingDayId], references: [id], onDelete: Cascade)
+  studentId          String
+  student            Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  trainerId          String
+  trainer            User                @relation(fields: [trainerId], references: [id])
+  performedDate      DateTime
+  status             WorkoutStatus
+  notes              String?
+  performedExercises PerformedExercise[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([trainerId, studentId, performedDate])
+}
+
+model PerformedExercise {
+  id                  String           @id @default(cuid())
+  workoutSessionId    String
+  workoutSession      WorkoutSession   @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+  plannedExerciseId   String?
+  plannedExercise     PlannedExercise? @relation(fields: [plannedExerciseId], references: [id], onDelete: SetNull)
+  exerciseId          String?
+  exercise            Exercise?        @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+  customExerciseName  String?
+  order               Int
+  sets                Int
+  reps                Int
+  loadKg              Decimal          @db.Decimal(7, 2)
+  registeredOneRmKg   Decimal?         @db.Decimal(7, 2)
+  estimatedOneRmKg    Decimal?         @db.Decimal(7, 2)
+  volume              Decimal          @db.Decimal(10, 2)
+  intensityPercentage Decimal?         @db.Decimal(6, 2)
+  restSeconds         Int
+  notes               String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  @@index([workoutSessionId, order])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  trainerId  String
+  trainer    User     @relation(fields: [trainerId], references: [id])
+  entityType String
+  entityId   String
+  action     String
+  oldValue   Json?
+  newValue   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([trainerId, entityType, entityId])
+}

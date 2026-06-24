@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f4f7f5;
+  --foreground: #17342f;
+  --muted: #687b76;
+  --line: #dbe5e1;
+  --card: #ffffff;
+  --primary: #0f4c45;
+  --primary-dark: #0a3732;
+  --accent: #ef8b3b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-card: var(--card);
+  --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-accent: var(--accent);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+}
+
+button,
+a {
+  transition: all 160ms ease;
+}
+
+::selection {
+  background: #b9dcd4;
+  color: #0a3732;
+}
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--card);
+  box-shadow: 0 10px 35px rgba(15, 76, 69, 0.05);
+}
+
+.field {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.72rem 0.85rem;
+  color: var(--foreground);
+  outline: none;
+}
+
+.field:focus {
+  border-color: #62a99d;
+  box-shadow: 0 0 0 3px rgba(98, 169, 157, 0.14);
+}
+
+.label {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: #49635d;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 12px;
+  background: var(--primary);
+  padding: 0.72rem 1rem;
+  color: white;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.68rem 0.9rem;
+  color: var(--foreground);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.btn-secondary:hover {
+  border-color: #9bc1ba;
+  background: #f5faf8;
+}
