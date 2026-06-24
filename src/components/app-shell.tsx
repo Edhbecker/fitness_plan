@@ -80,20 +80,12 @@ export function AppShell({ children, userName, userRole }: { children: React.Rea
           })}
         </nav>
 
-        <div className="mt-auto rounded-2xl border border-white/10 bg-white/6 p-4">
+        <div className="mt-auto mb-10 rounded-2xl border border-white/10 bg-white/6 p-4">
           <p className="text-xs font-bold text-white/80">Uso profissional</p>
           <p className="mt-1 text-[11px] leading-5 text-white/45">
             Dados e calculos apoiam a analise do profissional habilitado.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          className="mt-3 flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-white/55 hover:bg-white/7 hover:text-white"
-        >
-          <LogOut size={17} />
-          Sair
-        </button>
       </aside>
 
       <div className="min-w-0">
@@ -131,7 +123,7 @@ export function AppShell({ children, userName, userRole }: { children: React.Rea
                     role="menuitem"
                   >
                     <UserRound size={17} />
-                    Meu perfil e senha
+                    Meu perfil
                   </Link>
                   <button
                     type="button"
