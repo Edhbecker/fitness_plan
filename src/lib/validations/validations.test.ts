@@ -4,7 +4,7 @@ import { createAssessmentSchema } from "./assessment";
 import { studentSchema } from "./student";
 import { exerciseMetricsSchema } from "./workout";
 
-describe("validações de entrada", () => {
+describe("validacoes de entrada", () => {
   it("aceita cadastro profissional com senha forte", () => {
     expect(registerTrainerSchema.safeParse({
       name: "Profissional Teste",
@@ -15,12 +15,22 @@ describe("validações de entrada", () => {
     }).success).toBe(true);
   });
 
-  it("rejeita cadastro com senha fraca ou confirmação divergente", () => {
+  it("rejeita cadastro com senha fraca ou confirmacao divergente", () => {
     expect(registerTrainerSchema.safeParse({
       name: "Profissional Teste",
       email: "profissional@exemplo.com",
       password: "fraca",
       passwordConfirmation: "diferente",
+      acceptedTerms: true,
+    }).success).toBe(false);
+  });
+
+  it("rejeita cadastro com e-mail sem dominio publico valido", () => {
+    expect(registerTrainerSchema.safeParse({
+      name: "Profissional Teste",
+      email: "profissional@exemplo",
+      password: "SenhaSegura@123",
+      passwordConfirmation: "SenhaSegura@123",
       acceptedTerms: true,
     }).success).toBe(false);
   });
@@ -44,12 +54,12 @@ describe("validações de entrada", () => {
       birthDate: "2999-01-01",
       sex: "NAO_INFORMADO",
       heightCm: 170,
-      objective: "Saúde",
+      objective: "Saude",
       weeklyFrequency: 3,
     })).toThrow();
   });
 
-  it("rejeita avaliação futura e métricas negativas", () => {
+  it("rejeita avaliacao futura e metricas negativas", () => {
     expect(() => createAssessmentSchema.parse({ assessmentDate: new Date("2999-01-01"), weightKg: 70 })).toThrow();
     expect(() => exerciseMetricsSchema.parse({ sets: 3, reps: -1, loadKg: 20 })).toThrow();
   });
