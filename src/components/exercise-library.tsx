@@ -55,7 +55,7 @@ export function ExerciseLibrary({ exercises }: { exercises: ExerciseListItem[] }
   return (
     <div className="space-y-5">
       <div className="card flex flex-col gap-3 p-4 sm:flex-row">
-        <label className="relative flex-1"><span className="sr-only">Buscar exercício</span><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} /><input className="field pl-9" placeholder="Buscar por nome, grupo ou alias..." value={query} onChange={(event) => setQuery(event.target.value)} /></label>
+        <label className="relative flex-1"><span className="sr-only">Buscar exercício</span><Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" size={16} /><input className="field field-icon-left" placeholder="Buscar por nome, grupo ou alias..." value={query} onChange={(event) => setQuery(event.target.value)} /></label>
         <button type="button" className="btn-primary" onClick={() => setShowForm((value) => !value)}>{showForm ? <X size={16} /> : <Plus size={16} />} {showForm ? "Fechar" : "Novo exercício"}</button>
       </div>
 

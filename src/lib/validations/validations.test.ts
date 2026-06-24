@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { registerTrainerSchema } from "./auth";
 import { createAssessmentSchema } from "./assessment";
+import { passwordChangeSchema, profileDetailsSchema } from "./profile";
 import { studentSchema } from "./student";
 import { exerciseMetricsSchema } from "./workout";
 
@@ -32,6 +33,28 @@ describe("validacoes de entrada", () => {
       password: "SenhaSegura@123",
       passwordConfirmation: "SenhaSegura@123",
       acceptedTerms: true,
+    }).success).toBe(false);
+  });
+
+  it("aceita atualizacao de perfil com data de nascimento opcional", () => {
+    expect(profileDetailsSchema.safeParse({
+      name: "Eduardo Personal",
+      email: "eduardo@example.com",
+      birthDate: "",
+    }).success).toBe(true);
+
+    expect(profileDetailsSchema.safeParse({
+      name: "Eduardo Personal",
+      email: "eduardo@example.com",
+      birthDate: "1990-05-20",
+    }).success).toBe(true);
+  });
+
+  it("rejeita senha nova fraca no perfil", () => {
+    expect(passwordChangeSchema.safeParse({
+      currentPassword: "SenhaAtual@123",
+      newPassword: "fraca",
+      passwordConfirmation: "fraca",
     }).success).toBe(false);
   });
 

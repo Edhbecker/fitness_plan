@@ -44,9 +44,9 @@ export function StudentsList({ students }: { students: StudentListItem[] }) {
       <div className="card flex flex-col gap-3 p-4 sm:flex-row">
         <label className="relative flex-1">
           <span className="sr-only">Buscar aluno</span>
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" size={16} />
           <input
-            className="field pl-9"
+            className="field field-icon-left"
             placeholder="Buscar aluno..."
             value={query}
             onChange={(event) => setQuery(event.target.value)}
