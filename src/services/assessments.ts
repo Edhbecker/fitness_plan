@@ -29,6 +29,71 @@ export type CreateAssessmentInput = Skinfolds & {
   notes?: string;
 };
 
+function buildAssessmentData(
+  student: { birthDate: Date; sex: Sex; heightCm: unknown },
+  input: CreateAssessmentInput,
+) {
+  const ageAtAssessment = calculateAge(student.birthDate, input.assessmentDate);
+  const sexAtAssessment = input.sexAtAssessment ?? student.sex;
+  const heightCmAtAssessment = input.heightCmAtAssessment ?? Number(student.heightCm);
+  const skinfoldSum = calculateSkinfoldSum(input).value;
+  const bodyDensity =
+    skinfoldSum === null ? null : calculateBodyDensity(sexAtAssessment, skinfoldSum, ageAtAssessment);
+  const bodyFatPercentage =
+    bodyDensity === null ? null : calculateBodyFatPercentage(bodyDensity);
+  const fatMassKg =
+    bodyFatPercentage === null
+      ? null
+      : calculateFatMass(input.weightKg, bodyFatPercentage);
+  const leanMassKg =
+    fatMassKg === null ? null : calculateLeanMass(input.weightKg, fatMassKg);
+  const basalMetabolicRate = calculateBasalMetabolicRate(
+    sexAtAssessment,
+    input.weightKg,
+    heightCmAtAssessment,
+    ageAtAssessment,
+  );
+
+  return {
+    assessmentDate: input.assessmentDate,
+    weightKg: input.weightKg,
+    sexAtAssessment,
+    heightCmAtAssessment,
+    chestSkinfold: input.chestSkinfold,
+    axillarySkinfold: input.axillarySkinfold,
+    tricepsSkinfold: input.tricepsSkinfold,
+    subscapularSkinfold: input.subscapularSkinfold,
+    abdominalSkinfold: input.abdominalSkinfold,
+    suprailiacSkinfold: input.suprailiacSkinfold,
+    thighSkinfold: input.thighSkinfold,
+    bicepsSkinfold: input.bicepsSkinfold ?? null,
+    supraespinalSkinfold: input.supraespinalSkinfold ?? null,
+    chestCircumference: input.chestCircumference ?? null,
+    waistCircumference: input.waistCircumference ?? null,
+    hipCircumference: input.hipCircumference ?? null,
+    abdomenCircumference: input.abdomenCircumference ?? null,
+    thighCircumference: input.thighCircumference ?? null,
+    armCircumference: input.armCircumference ?? null,
+    notes: input.notes ?? "",
+    ageAtAssessment,
+    skinfoldSum,
+    bodyDensity,
+    bodyFatPercentage,
+    fatMassKg,
+    leanMassKg,
+    basalMetabolicRate,
+  };
+}
+
+export async function getStudentAssessmentsForTrainer(trainerId: string, studentId: string) {
+  return prisma.student.findFirst({
+    where: { id: studentId, trainerId },
+    include: {
+      assessments: { orderBy: { assessmentDate: "desc" } },
+    },
+  });
+}
+
 export async function createAssessmentForTrainer(
   trainerId: string,
   studentId: string,
@@ -44,41 +109,13 @@ export async function createAssessmentForTrainer(
       orderBy: { createdAt: "asc" },
     });
 
-    const ageAtAssessment = calculateAge(student.birthDate, validatedInput.assessmentDate);
-    const sexAtAssessment = validatedInput.sexAtAssessment ?? student.sex;
-    const heightCmAtAssessment = validatedInput.heightCmAtAssessment ?? Number(student.heightCm);
-    const skinfoldSum = calculateSkinfoldSum(validatedInput).value;
-    const bodyDensity =
-      skinfoldSum === null ? null : calculateBodyDensity(sexAtAssessment, skinfoldSum, ageAtAssessment);
-    const bodyFatPercentage =
-      bodyDensity === null ? null : calculateBodyFatPercentage(bodyDensity);
-    const fatMassKg =
-      bodyFatPercentage === null
-        ? null
-        : calculateFatMass(validatedInput.weightKg, bodyFatPercentage);
-    const leanMassKg =
-      fatMassKg === null ? null : calculateLeanMass(validatedInput.weightKg, fatMassKg);
-    const basalMetabolicRate = calculateBasalMetabolicRate(
-      sexAtAssessment,
-      validatedInput.weightKg,
-      heightCmAtAssessment,
-      ageAtAssessment,
-    );
+    const assessmentData = buildAssessmentData(student, validatedInput);
 
     const assessment = await transaction.bodyAssessment.create({
       data: {
         studentId: student.id,
         protocolId: protocol.id,
-        ...validatedInput,
-        ageAtAssessment,
-        sexAtAssessment,
-        heightCmAtAssessment,
-        skinfoldSum,
-        bodyDensity,
-        bodyFatPercentage,
-        fatMassKg,
-        leanMassKg,
-        basalMetabolicRate,
+        ...assessmentData,
       },
     });
 
@@ -87,6 +124,47 @@ export async function createAssessmentForTrainer(
       entityType: "BodyAssessment",
       entityId: assessment.id,
       action: "ASSESSMENT_CREATED",
+      newValue: {
+        studentId,
+        assessmentDate: assessment.assessmentDate.toISOString(),
+        weightKg: Number(assessment.weightKg),
+      },
+    });
+    return assessment;
+  });
+}
+
+export async function updateAssessmentForTrainer(
+  trainerId: string,
+  studentId: string,
+  assessmentId: string,
+  input: CreateAssessmentInput,
+) {
+  const validatedInput = createAssessmentSchema.parse(input);
+  return prisma.$transaction(async (transaction) => {
+    const current = await transaction.bodyAssessment.findFirstOrThrow({
+      where: {
+        id: assessmentId,
+        student: { id: studentId, trainerId },
+      },
+      include: { student: true },
+    });
+    const assessmentData = buildAssessmentData(current.student, validatedInput);
+    const assessment = await transaction.bodyAssessment.update({
+      where: { id: current.id },
+      data: assessmentData,
+    });
+
+    await writeAuditLog(transaction, {
+      trainerId,
+      entityType: "BodyAssessment",
+      entityId: assessment.id,
+      action: "ASSESSMENT_UPDATED",
+      oldValue: {
+        studentId,
+        assessmentDate: current.assessmentDate.toISOString(),
+        weightKg: Number(current.weightKg),
+      },
       newValue: {
         studentId,
         assessmentDate: assessment.assessmentDate.toISOString(),
