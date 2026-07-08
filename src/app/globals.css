@@ -59,6 +59,10 @@ a {
   padding-left: 2.6rem;
 }
 
+.field-select {
+  padding-right: 2.6rem;
+}
+
 .field:focus {
   border-color: #62a99d;
   box-shadow: 0 0 0 3px rgba(98, 169, 157, 0.14);

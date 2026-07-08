@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, Pencil, Plus } from "lucide-react";
+import { ChevronLeft, Plus } from "lucide-react";
 import { AssessmentCalculator, type EditableAssessment } from "@/components/assessment-calculator";
+import { AssessmentList } from "@/components/assessment-list";
 import { requireTrainerId } from "@/lib/auth/require-trainer";
 import { calculateAge } from "@/lib/calculations";
 import { getStudentAssessmentsForTrainer } from "@/services/assessments";
@@ -16,6 +17,19 @@ function formatDate(date: Date) {
 
 function numberOrNull(value: unknown) {
   return value === null || value === undefined ? null : Number(value);
+}
+
+function toListAssessment(assessment: NonNullable<Awaited<ReturnType<typeof getStudentAssessmentsForTrainer>>>["assessments"][number]) {
+  return {
+    id: assessment.id,
+    assessmentDate: dateInputValue(assessment.assessmentDate),
+    displayDate: formatDate(assessment.assessmentDate),
+    weightKg: Number(assessment.weightKg),
+    bodyFatPercentage: numberOrNull(assessment.bodyFatPercentage),
+    leanMassKg: numberOrNull(assessment.leanMassKg),
+    waistCircumference: numberOrNull(assessment.waistCircumference),
+    notes: assessment.notes,
+  };
 }
 
 function toEditableAssessment(assessment: NonNullable<Awaited<ReturnType<typeof getStudentAssessmentsForTrainer>>>["assessments"][number]): EditableAssessment {
@@ -82,39 +96,9 @@ export default async function AssessmentPage({
         </div>
       </div>
 
-      {student.assessments.length > 0 && (
-        <section className="card p-4">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-bold">Avaliacoes registradas</h2>
-              <p className="mt-1 text-xs text-muted">Clique em editar para ajustar uma avaliacao existente.</p>
-            </div>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {student.assessments.map((assessment) => {
-              const active = assessment.id === editableAssessment?.id;
-              return (
-                <article key={assessment.id} className={`rounded-2xl border p-4 ${active ? "border-primary bg-[#e9f6f2]" : "border-line bg-white"}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-bold text-muted">{formatDate(assessment.assessmentDate)}</p>
-                      <p className="mt-1 text-lg font-bold">{Number(assessment.weightKg)} kg</p>
-                      <p className="mt-1 text-xs text-muted">
-                        {assessment.bodyFatPercentage === null ? "Gordura sem calculo" : `${Number(assessment.bodyFatPercentage)}% de gordura`}
-                      </p>
-                    </div>
-                    <Link href={`/alunos/${student.id}/avaliacao?editar=${assessment.id}`} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-primary hover:bg-[#f4f7f5]">
-                      <Pencil size={14} /> Editar
-                    </Link>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      {student.assessments.length > 0 && <AssessmentList assessments={student.assessments.map(toListAssessment)} studentId={student.id} selectedAssessmentId={editableAssessment?.id} />}
 
-      <AssessmentCalculator studentId={student.id} initialSex={student.sex} initialHeight={Number(student.heightCm)} initialAge={calculateAge(student.birthDate)} assessment={editableAssessment} />
+      <AssessmentCalculator key={editableAssessment?.id ?? "new-assessment"} studentId={student.id} initialSex={student.sex} initialHeight={Number(student.heightCm)} initialAge={calculateAge(student.birthDate)} assessment={editableAssessment} />
     </div>
   );
 }
