@@ -23,6 +23,7 @@
     "supabase:check": "node scripts/check-supabase.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1083.0",
     "@hookform/resolvers": "^5.4.0",
     "@prisma/client": "^6.19.3",
     "@supabase/ssr": "^0.12.0",

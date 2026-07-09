@@ -22,6 +22,32 @@ if (process.env.AUTH_TRUST_HOST !== "true") warnings.push('Defina AUTH_TRUST_HOS
 if (process.env.AUTH_URL?.includes("localhost")) warnings.push("AUTH_URL ainda aponta para localhost.");
 if (envInfo.hasEnvLocal) warnings.push(".env.local existe, mas este check usa .env para simular a producao.");
 
+const storageProvider = (process.env.STORAGE_PROVIDER ?? "local").trim().toLowerCase();
+if (!["local", "r2"].includes(storageProvider)) errors.push("STORAGE_PROVIDER deve ser local ou r2.");
+
+if (storageProvider === "local") {
+  warnings.push("STORAGE_PROVIDER esta como local; em producao, imagens enviadas podem nao persistir na hospedagem.");
+}
+
+if (storageProvider === "r2") {
+  for (const key of ["R2_BUCKET", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]) {
+    if (!process.env[key]?.trim()) errors.push(`${key} nao esta configurada para o Cloudflare R2.`);
+  }
+
+  const r2Endpoint = process.env.R2_ENDPOINT?.trim();
+  const r2AccountId = process.env.R2_ACCOUNT_ID?.trim();
+  if (!r2Endpoint && !r2AccountId) errors.push("Defina R2_ENDPOINT ou R2_ACCOUNT_ID para conectar ao Cloudflare R2.");
+
+  if (r2Endpoint) {
+    try {
+      const url = new URL(r2Endpoint);
+      if (url.protocol !== "https:") errors.push("R2_ENDPOINT deve usar https.");
+    } catch {
+      errors.push("R2_ENDPOINT nao e uma URL valida.");
+    }
+  }
+}
+
 for (const key of ["DATABASE_URL", "DIRECT_URL"]) {
   try {
     const url = new URL(process.env[key] ?? "");

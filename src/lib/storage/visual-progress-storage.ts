@@ -1,7 +1,9 @@
 import "server-only";
 
+import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { Readable } from "node:stream";
 import sharp from "sharp";
 import {
   visualProgressAllowedMimeTypes,
@@ -54,19 +56,85 @@ class LocalVisualProgressStorageProvider implements VisualProgressStorageProvide
   }
 }
 
-class R2VisualProgressStorageProvider implements VisualProgressStorageProvider {
-  async put(): Promise<void> {
-    throw new Error("Storage R2 ainda não configurado. Use STORAGE_PROVIDER=local neste ambiente.");
+function requiredEnv(name: string) {
+  const value = process.env[name]?.trim();
+  if (!value) throw new Error(`${name} nao esta configurada para o armazenamento R2.`);
+  return value;
+}
+
+function r2Endpoint() {
+  const explicitEndpoint = process.env.R2_ENDPOINT?.trim();
+  if (explicitEndpoint) return explicitEndpoint;
+  return `https://${requiredEnv("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com`;
+}
+
+function storageObjectKey(storagePath: string) {
+  const key = storagePath.replaceAll("\\", "/").replace(/^\/+/, "");
+  if (!key || key.split("/").includes("..")) throw new Error("Caminho de imagem invalido.");
+  return key;
+}
+
+async function responseBodyToBuffer(body: unknown) {
+  if (!body) throw new Error("Resposta vazia do armazenamento R2.");
+
+  if (body instanceof Uint8Array) return Buffer.from(body);
+
+  const transformable = body as { transformToByteArray?: () => Promise<Uint8Array> };
+  if (typeof transformable.transformToByteArray === "function") {
+    return Buffer.from(await transformable.transformToByteArray());
   }
 
-  async get(): Promise<Buffer> {
-    throw new Error("Storage R2 ainda não configurado. Use STORAGE_PROVIDER=local neste ambiente.");
+  const blobLike = body as { arrayBuffer?: () => Promise<ArrayBuffer> };
+  if (typeof blobLike.arrayBuffer === "function") {
+    return Buffer.from(await blobLike.arrayBuffer());
+  }
+
+  if (body instanceof Readable) {
+    const chunks: Buffer[] = [];
+    for await (const chunk of body) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks);
+  }
+
+  throw new Error("Formato de resposta do armazenamento R2 nao suportado.");
+}
+
+class R2VisualProgressStorageProvider implements VisualProgressStorageProvider {
+  private bucket = requiredEnv("R2_BUCKET");
+
+  private client = new S3Client({
+    region: process.env.R2_REGION?.trim() || "auto",
+    endpoint: r2Endpoint(),
+    credentials: {
+      accessKeyId: requiredEnv("R2_ACCESS_KEY_ID"),
+      secretAccessKey: requiredEnv("R2_SECRET_ACCESS_KEY"),
+    },
+  });
+
+  async put(input: StoragePutInput): Promise<void> {
+    await this.client.send(new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: storageObjectKey(input.storagePath),
+      Body: input.buffer,
+      ContentType: "image/webp",
+      CacheControl: "private, max-age=31536000, immutable",
+    }));
+  }
+
+  async get(input: StorageGetInput): Promise<Buffer> {
+    const response = await this.client.send(new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: storageObjectKey(input.storagePath),
+    }));
+    return responseBodyToBuffer(response.Body);
   }
 }
 
 function provider(): VisualProgressStorageProvider {
-  const selected = process.env.STORAGE_PROVIDER ?? "local";
+  const selected = (process.env.STORAGE_PROVIDER ?? "local").trim().toLowerCase();
   if (selected === "r2") return new R2VisualProgressStorageProvider();
+  if (selected !== "local") throw new Error("STORAGE_PROVIDER deve ser local ou r2.");
   return new LocalVisualProgressStorageProvider();
 }
 
@@ -199,5 +267,12 @@ export async function deleteVisualProgressImage() {
 }
 
 export function validateVisualProgressStorageAccess() {
+  const selected = (process.env.STORAGE_PROVIDER ?? "local").trim().toLowerCase();
+  if (selected === "r2") {
+    requiredEnv("R2_BUCKET");
+    requiredEnv("R2_ACCESS_KEY_ID");
+    requiredEnv("R2_SECRET_ACCESS_KEY");
+    r2Endpoint();
+  }
   return true;
 }
