@@ -62,6 +62,30 @@ const sessionInclude = {
   },
 };
 
+function emptyVisualProgressSummary() {
+  return {
+    totalSessions: 0,
+    firstSessionDate: null,
+    latestSessionDate: null,
+    latestComparison: null,
+  };
+}
+
+function isMissingVisualProgressSchemaError(error: unknown) {
+  const candidate = error as { code?: string; message?: string; meta?: { table?: string; column?: string } } | null;
+  const code = candidate?.code;
+  if (code === "P2021" || code === "P2022") return true;
+
+  const details = [
+    candidate?.message,
+    candidate?.meta?.table,
+    candidate?.meta?.column,
+  ].filter(Boolean).join(" ");
+
+  return /VisualProgress|visual_progress|visualprogress/i.test(details)
+    && /does not exist|doesn't exist|nao existe|não existe|missing/i.test(details);
+}
+
 function toNullableText(value?: string | null) {
   const clean = value?.trim();
   return clean ? clean : null;
@@ -196,30 +220,35 @@ function photoCreateData(input: {
 }
 
 export async function getVisualProgressSummaryForTrainer(trainerId: string, studentId: string) {
-  const [sessions, latestComparison] = await Promise.all([
-    prisma.visualProgressSession.findMany({
-      where: { trainerId, studentId, deletedAt: null },
-      orderBy: { sessionDate: "asc" },
-      select: { id: true, sessionDate: true },
-    }),
-    prisma.visualProgressComparison.findFirst({
-      where: { trainerId, studentId },
-      orderBy: { createdAt: "desc" },
-      include: {
-        initialSession: { include: { bodyAssessment: { select: assessmentSelect } } },
-        finalSession: { include: { bodyAssessment: { select: assessmentSelect } } },
-      },
-    }),
-  ]);
+  try {
+    const [sessions, latestComparison] = await Promise.all([
+      prisma.visualProgressSession.findMany({
+        where: { trainerId, studentId, deletedAt: null },
+        orderBy: { sessionDate: "asc" },
+        select: { id: true, sessionDate: true },
+      }),
+      prisma.visualProgressComparison.findFirst({
+        where: { trainerId, studentId },
+        orderBy: { createdAt: "desc" },
+        include: {
+          initialSession: { include: { bodyAssessment: { select: assessmentSelect } } },
+          finalSession: { include: { bodyAssessment: { select: assessmentSelect } } },
+        },
+      }),
+    ]);
 
-  const first = sessions[0] ?? null;
-  const latest = sessions.at(-1) ?? null;
-  return {
-    totalSessions: sessions.length,
-    firstSessionDate: first?.sessionDate ?? null,
-    latestSessionDate: latest?.sessionDate ?? null,
-    latestComparison,
-  };
+    const first = sessions[0] ?? null;
+    const latest = sessions.at(-1) ?? null;
+    return {
+      totalSessions: sessions.length,
+      firstSessionDate: first?.sessionDate ?? null,
+      latestSessionDate: latest?.sessionDate ?? null,
+      latestComparison,
+    };
+  } catch (error) {
+    if (isMissingVisualProgressSchemaError(error)) return emptyVisualProgressSummary();
+    throw error;
+  }
 }
 
 export async function getVisualProgressPageForTrainer(trainerId: string, studentId: string) {
