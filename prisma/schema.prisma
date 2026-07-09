@@ -57,45 +57,67 @@ enum WorkoutStatus {
   MISSED
 }
 
+enum VisualPhotoAngle {
+  FRONT
+  BACK
+  RIGHT_SIDE
+  LEFT_SIDE
+  OPTIONAL_1
+  OPTIONAL_2
+}
+
+enum VisualPerception {
+  NO_PERCEPTIBLE_CHANGE
+  SLIGHT_EVOLUTION
+  MODERATE_EVOLUTION
+  EVIDENT_EVOLUTION
+}
+
 model User {
-  id              String           @id @default(cuid())
-  name            String
-  email           String           @unique
-  birthDate       DateTime?
-  passwordHash    String
-  role            UserRole         @default(TRAINER)
-  students        Student[]
-  exercises       Exercise[]
-  periodizations  Periodization[]
-  workoutSessions WorkoutSession[]
-  auditLogs       AuditLog[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id                        String                     @id @default(cuid())
+  name                      String
+  email                     String                     @unique
+  birthDate                 DateTime?
+  passwordHash              String
+  role                      UserRole                   @default(TRAINER)
+  students                  Student[]
+  exercises                 Exercise[]
+  periodizations            Periodization[]
+  workoutSessions           WorkoutSession[]
+  visualProgressSessions    VisualProgressSession[]
+  visualProgressPhotos      VisualProgressPhoto[]
+  visualProgressComparisons VisualProgressComparison[]
+  auditLogs                 AuditLog[]
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
 }
 
 model Student {
-  id              String                 @id @default(cuid())
-  trainerId       String
-  trainer         User                   @relation(fields: [trainerId], references: [id])
-  name            String
-  contact         String?
-  birthDate       DateTime
-  sex             Sex
-  heightCm        Decimal                @db.Decimal(6, 2)
-  initialWeightKg Decimal?               @db.Decimal(6, 2)
-  objective       String
-  weeklyFrequency Int
-  notes           String?
-  status          StudentStatus          @default(ACTIVE)
-  deactivatedAt   DateTime?
-  anonymizedAt    DateTime?
-  healthHistory   HealthHistoryVersion[]
-  lifestyle       Lifestyle?
-  assessments     BodyAssessment[]
-  periodizations  Periodization[]
-  workoutSessions WorkoutSession[]
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
+  id                        String                     @id @default(cuid())
+  trainerId                 String
+  trainer                   User                       @relation(fields: [trainerId], references: [id])
+  name                      String
+  contact                   String?
+  birthDate                 DateTime
+  sex                       Sex
+  heightCm                  Decimal                    @db.Decimal(6, 2)
+  initialWeightKg           Decimal?                   @db.Decimal(6, 2)
+  objective                 String
+  weeklyFrequency           Int
+  notes                     String?
+  status                    StudentStatus              @default(ACTIVE)
+  deactivatedAt             DateTime?
+  anonymizedAt              DateTime?
+  healthHistory             HealthHistoryVersion[]
+  lifestyle                 Lifestyle?
+  assessments               BodyAssessment[]
+  periodizations            Periodization[]
+  workoutSessions           WorkoutSession[]
+  visualProgressSessions    VisualProgressSession[]
+  visualProgressPhotos      VisualProgressPhoto[]
+  visualProgressComparisons VisualProgressComparison[]
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
 
   @@index([trainerId, status])
 }
@@ -168,42 +190,113 @@ model BodyCompositionProtocol {
 }
 
 model BodyAssessment {
-  id                   String                  @id @default(cuid())
-  studentId            String
-  student              Student                 @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  protocolId           String
-  protocol             BodyCompositionProtocol @relation(fields: [protocolId], references: [id])
-  assessmentDate       DateTime
-  weightKg             Decimal                 @db.Decimal(6, 2)
-  ageAtAssessment      Int
-  sexAtAssessment      Sex
-  heightCmAtAssessment Decimal                 @db.Decimal(6, 2)
-  chestSkinfold        Decimal?                @db.Decimal(6, 2)
-  axillarySkinfold     Decimal?                @db.Decimal(6, 2)
-  tricepsSkinfold      Decimal?                @db.Decimal(6, 2)
-  subscapularSkinfold  Decimal?                @db.Decimal(6, 2)
-  abdominalSkinfold    Decimal?                @db.Decimal(6, 2)
-  suprailiacSkinfold   Decimal?                @db.Decimal(6, 2)
-  thighSkinfold        Decimal?                @db.Decimal(6, 2)
-  bicepsSkinfold       Decimal?                @db.Decimal(6, 2)
-  supraespinalSkinfold Decimal?                @db.Decimal(6, 2)
-  chestCircumference   Decimal?                @db.Decimal(6, 2)
-  waistCircumference   Decimal?                @db.Decimal(6, 2)
-  hipCircumference     Decimal?                @db.Decimal(6, 2)
-  abdomenCircumference Decimal?                @db.Decimal(6, 2)
-  thighCircumference   Decimal?                @db.Decimal(6, 2)
-  armCircumference     Decimal?                @db.Decimal(6, 2)
-  skinfoldSum          Decimal?                @db.Decimal(8, 2)
-  bodyDensity          Decimal?                @db.Decimal(8, 5)
-  bodyFatPercentage    Decimal?                @db.Decimal(6, 2)
-  fatMassKg            Decimal?                @db.Decimal(6, 2)
-  leanMassKg           Decimal?                @db.Decimal(6, 2)
-  basalMetabolicRate   Decimal?                @db.Decimal(8, 2)
-  notes                String?
-  createdAt            DateTime                @default(now())
-  updatedAt            DateTime                @updatedAt
+  id                     String                  @id @default(cuid())
+  studentId              String
+  student                Student                 @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  protocolId             String
+  protocol               BodyCompositionProtocol @relation(fields: [protocolId], references: [id])
+  assessmentDate         DateTime
+  weightKg               Decimal                 @db.Decimal(6, 2)
+  ageAtAssessment        Int
+  sexAtAssessment        Sex
+  heightCmAtAssessment   Decimal                 @db.Decimal(6, 2)
+  chestSkinfold          Decimal?                @db.Decimal(6, 2)
+  axillarySkinfold       Decimal?                @db.Decimal(6, 2)
+  tricepsSkinfold        Decimal?                @db.Decimal(6, 2)
+  subscapularSkinfold    Decimal?                @db.Decimal(6, 2)
+  abdominalSkinfold      Decimal?                @db.Decimal(6, 2)
+  suprailiacSkinfold     Decimal?                @db.Decimal(6, 2)
+  thighSkinfold          Decimal?                @db.Decimal(6, 2)
+  bicepsSkinfold         Decimal?                @db.Decimal(6, 2)
+  supraespinalSkinfold   Decimal?                @db.Decimal(6, 2)
+  chestCircumference     Decimal?                @db.Decimal(6, 2)
+  waistCircumference     Decimal?                @db.Decimal(6, 2)
+  hipCircumference       Decimal?                @db.Decimal(6, 2)
+  abdomenCircumference   Decimal?                @db.Decimal(6, 2)
+  thighCircumference     Decimal?                @db.Decimal(6, 2)
+  armCircumference       Decimal?                @db.Decimal(6, 2)
+  skinfoldSum            Decimal?                @db.Decimal(8, 2)
+  bodyDensity            Decimal?                @db.Decimal(8, 5)
+  bodyFatPercentage      Decimal?                @db.Decimal(6, 2)
+  fatMassKg              Decimal?                @db.Decimal(6, 2)
+  leanMassKg             Decimal?                @db.Decimal(6, 2)
+  basalMetabolicRate     Decimal?                @db.Decimal(8, 2)
+  notes                  String?
+  visualProgressSessions VisualProgressSession[]
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
 
   @@index([studentId, assessmentDate])
+}
+
+model VisualProgressSession {
+  id                 String                     @id @default(cuid())
+  studentId          String
+  student            Student                    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  trainerId          String
+  trainer            User                       @relation(fields: [trainerId], references: [id])
+  bodyAssessmentId   String?
+  bodyAssessment     BodyAssessment?            @relation(fields: [bodyAssessmentId], references: [id], onDelete: SetNull)
+  sessionDate        DateTime
+  weightKg           Decimal?                   @db.Decimal(6, 2)
+  notes              String?
+  photos             VisualProgressPhoto[]
+  initialComparisons VisualProgressComparison[] @relation("InitialVisualProgressSession")
+  finalComparisons   VisualProgressComparison[] @relation("FinalVisualProgressSession")
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  deletedAt          DateTime?
+
+  @@index([trainerId, studentId, sessionDate])
+  @@index([bodyAssessmentId])
+}
+
+model VisualProgressPhoto {
+  id                   String                @id @default(cuid())
+  sessionId            String
+  session              VisualProgressSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  studentId            String
+  student              Student               @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  trainerId            String
+  trainer              User                  @relation(fields: [trainerId], references: [id])
+  angle                VisualPhotoAngle
+  originalFileName     String
+  fileName             String
+  storagePath          String
+  thumbnailStoragePath String
+  mimeType             String
+  fileSize             Int
+  thumbnailFileSize    Int
+  width                Int
+  height               Int
+  thumbnailWidth       Int
+  thumbnailHeight      Int
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  deletedAt            DateTime?
+
+  @@index([trainerId, studentId])
+  @@index([sessionId, angle])
+}
+
+model VisualProgressComparison {
+  id                  String                @id @default(cuid())
+  studentId           String
+  student             Student               @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  trainerId           String
+  trainer             User                  @relation(fields: [trainerId], references: [id])
+  initialSessionId    String
+  initialSession      VisualProgressSession @relation("InitialVisualProgressSession", fields: [initialSessionId], references: [id], onDelete: Cascade)
+  finalSessionId      String
+  finalSession        VisualProgressSession @relation("FinalVisualProgressSession", fields: [finalSessionId], references: [id], onDelete: Cascade)
+  visualPerception    VisualPerception?
+  professionalComment String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  @@index([trainerId, studentId, createdAt])
+  @@index([initialSessionId])
+  @@index([finalSessionId])
 }
 
 model Exercise {
